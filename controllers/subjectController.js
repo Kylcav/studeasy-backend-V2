@@ -4,7 +4,7 @@ const Class = require("../models/Class");
 // Create a new subject (Teacher only)
 exports.createSubject = async (req, res) => {
   try {
-    const { title, content, resources } = req.body;
+    const { title, description, quizQuestions ,quizQuestionCount} = req.body;
     const classId = req.params.classId;
     const teacherId = req.user.id;
     const schoolId = req.user.schoolId;
@@ -31,8 +31,9 @@ exports.createSubject = async (req, res) => {
 
     const newSubject = new Subject({
       title,
-      content,
-      resources: resources || [],
+      description,
+      quizQuestions: quizQuestions || [],
+      quizQuestionCount: quizQuestionCount || 0,
       classId
     });
 

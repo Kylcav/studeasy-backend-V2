@@ -7,12 +7,14 @@ const {
   resetPassword,
   setPassword,
   deleteUser,
+  getSchoolStudents,
 } = require("../controllers/userController");
 const authMiddleware = require("../middlewares/authMiddleware");
 const roleMiddleware = require("../middlewares/roleMiddleware");
 const router = express.Router();
 
 router.get("/", authMiddleware, roleMiddleware(["admin"]), getUsers);
+router.get("/school/students", authMiddleware, roleMiddleware(["teacher"]), getSchoolStudents); // Teacher gets students from their school
 router.post("/", authMiddleware, roleMiddleware(["admin"]), createUser); // Admin creates users for a school
 router.post("/set-password", setPassword); // First-time password setup (no auth required)
 router.get("/:id", authMiddleware, roleMiddleware(["admin", "user"]), getUser); // Get a single user by ID

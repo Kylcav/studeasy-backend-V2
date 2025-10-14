@@ -278,6 +278,50 @@ exports.setPassword = async (req, res) => {
 
 };
 
+// Get students from teacher's school (Teacher only)
+exports.getSchoolStudents = async (req, res) => {
+  try {
+    const teacherId = req.user.id;
+    const schoolId = req.user.schoolId;
+
+    // Verify the user is a teacher
+    if (req.user.role !== "teacher") {
+      return res.status(403).json({ 
+        message: "Only teachers can access student lists" 
+      });
+    }
+
+    // Verify the teacher has a schoolId
+    if (!schoolId) {
+      return res.status(400).json({ 
+        message: "Teacher must be associated with a school" 
+      });
+    }
+
+    // Get all students from the teacher's school
+    const students = await User.find({
+      role: "student",
+      schoolId: schoolId
+    }).select("-password").sort({ name: 1 }); // Sort by name alphabetically
+
+    res.status(200).json({
+      message: "Students fetched successfully",
+      count: students.length,
+      students
+    });
+  } catch (error) {
+    if (error.name === "CastError") {
+      return res.status(400).json({ 
+        message: "Invalid school ID format" 
+      });
+    }
+    res.status(500).json({
+      message: "Error fetching students",
+      error: error.message,
+    });
+  }
+};
+
 // Delete user
 exports.deleteUser = async (req, res) => {
   try {
