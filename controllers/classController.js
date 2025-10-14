@@ -41,28 +41,35 @@ exports.createClass = async (req, res) => {
   }
 };
 
-// Get all classes for a teacher's school
+// Get classes - unified endpoint for teachers and students
 exports.getClasses = async (req, res) => {
   try {
     const schoolId = req.user.schoolId;
     const userRole = req.user.role;
+    const userId = req.user.id;
 
     let query = { schoolId };
+    let message = "Classes fetched successfully";
 
-    // If user is a teacher, only show their own classes
     if (userRole === "teacher") {
-      query.createdBy = req.user.id;
+      // Teachers see only their own created classes
+      query.createdBy = userId;
+      message = "Your classes fetched successfully";
+    } else if (userRole === "student") {
+      // Students see only classes they are assigned to
+      query.students = userId;
+      message = "Your assigned classes fetched successfully";
     }
-    // If user is admin or super_admin, show all classes in the school
-    // If user is student, show all classes in the school (they can view but not edit)
+    // Admins and super_admins see all classes in the school (no additional query filters)
 
     const classes = await Class.find(query)
       .populate('createdBy', 'name email')
-      .populate('subjects', 'title content')
+      .populate('subjects', 'title description quizQuestionCount')
       .sort({ createdAt: -1 });
 
     res.status(200).json({
-      message: "Classes fetched successfully",
+      message,
+      count: classes.length,
       classes
     });
   } catch (error) {
@@ -313,26 +320,6 @@ exports.getClassStudents = async (req, res) => {
   }
 };
 
-// Get classes assigned to the current student
-exports.getMyClasses = async (req, res) => {
-  try {
-    if (req.user.role !== "student") {
-      return res.status(403).json({ message: "Only students can access their classes" });
-    }
-
-    const classes = await Class.find({
-      schoolId: req.user.schoolId,
-      students: req.user.id
-    })
-      .populate('createdBy', 'name email')
-      .select('name description fileUrl createdBy schoolId')
-      .sort({ createdAt: -1 });
-
-    return res.status(200).json({ message: "Assigned classes fetched", classes });
-  } catch (error) {
-    return res.status(500).json({ message: "Error fetching assigned classes", error: error.message });
-  }
-};
 
 // Remove a student from a class (Teacher owner only)
 exports.removeStudentFromClass = async (req, res) => {

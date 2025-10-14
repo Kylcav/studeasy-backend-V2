@@ -19,7 +19,7 @@ router.use(authMiddleware);
 // Create a new class (Teacher only)
 router.post("/", roleMiddleware(["teacher"]), createClass);
 
-// Get all classes (Teacher sees their own, Admin/Student see all in school)
+// Get classes - unified endpoint (Teachers see their own, Students see assigned, Admins see all)
 router.get("/", roleMiddleware(["teacher", "admin", "student"]), getClasses);
 
 // Get a single class by ID
@@ -48,11 +48,5 @@ router.delete(
   removeStudentFromClass
 );
 
-// Get classes assigned to current student
-router.get(
-  "/my-classes",
-  roleMiddleware(["student"]),
-  require("../controllers/classController").getMyClasses
-);
 
 module.exports = router;
