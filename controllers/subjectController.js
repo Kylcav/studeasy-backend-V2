@@ -29,11 +29,32 @@ exports.createSubject = async (req, res) => {
       });
     }
 
+    // Normalize quiz questions from payload. Accepts objects like
+    // { question: string, options: string[] | answer: string[] | answer: string }
+    let normalizedQuestions = [];
+    if (Array.isArray(quizQuestions)) {
+      normalizedQuestions = quizQuestions
+        .filter(q => q && (q.question || q.ques || q.prompt))
+        .map(q => {
+          const questionText = (q.question || q.ques || q.prompt || "").toString();
+          const options = Array.isArray(q.options) ? q.options.map(String) : [];
+          let answers = [];
+          if (Array.isArray(q.answers)) {
+            answers = q.answers.map(String);
+          } else if (Array.isArray(q.answer)) {
+            answers = q.answer.map(String);
+          } else if (typeof q.answer === 'string') {
+            answers = [q.answer];
+          }
+          return { question: questionText, options, answers };
+        });
+    }
+
     const newSubject = new Subject({
       title,
       description,
-      quizQuestions: quizQuestions || [],
-      quizQuestionCount: quizQuestionCount || 0,
+      quizQuestions: normalizedQuestions,
+      quizQuestionCount,
       classId
     });
 
@@ -200,6 +221,27 @@ exports.updateSubject = async (req, res) => {
 
     // Remove fields that shouldn't be updated directly
     delete updates.classId;
+
+    // If quizQuestions provided in update, normalize the payload
+    if (Array.isArray(updates.quizQuestions)) {
+      updates.quizQuestions = updates.quizQuestions
+        .filter(q => q && (q.question || q.ques || q.prompt))
+        .map(q => {
+          const questionText = (q.question || q.ques || q.prompt || "").toString();
+          const options = Array.isArray(q.options) ? q.options.map(String) : [];
+          let answers = [];
+          if (Array.isArray(q.answers)) {
+            answers = q.answers.map(String);
+          } else if (Array.isArray(q.answer)) {
+            answers = q.answer.map(String);
+          } else if (typeof q.answer === 'string') {
+            answers = [q.answer];
+          }
+          return { question: questionText, options, answers };
+        });
+      // Update count to remain consistent
+      updates.quizQuestionCount = updates.quizQuestions.length;
+    }
 
     const updatedSubject = await Subject.findByIdAndUpdate(
       subjectId,
