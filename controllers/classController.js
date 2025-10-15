@@ -6,7 +6,7 @@ const Invitation = require("../models/Invitation");
 // Create a new class (Teacher only)
 exports.createClass = async (req, res) => {
   try {
-    const { name, description, fileUrl } = req.body;
+    const { name, description } = req.body;
     const teacherId = req.user.id; // From auth middleware
     const schoolId = req.user.schoolId; // From auth middleware
 
