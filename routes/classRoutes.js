@@ -7,7 +7,7 @@ const {
   deleteClass,
   inviteStudents,
   getClassStudents,
-  removeStudentFromClass,
+  removeStudentsFromClass,
   getSchoolStudentsWithFlags
 } = require("../controllers/classController");
 const authMiddleware = require("../middlewares/authMiddleware");
@@ -49,11 +49,13 @@ router.get(
   getSchoolStudentsWithFlags
 );
 
-// Remove student from class (Teacher only)
+
+
+// Bulk remove students from class (Teacher only)
 router.delete(
-  "/:classId/students/:studentId",
+  "/:classId/students",
   roleMiddleware(["teacher"]),
-  removeStudentFromClass
+  removeStudentsFromClass
 );
 
 

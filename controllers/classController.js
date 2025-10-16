@@ -366,11 +366,11 @@ exports.getSchoolStudentsWithFlags = async (req, res) => {
 };
 
 
-// Remove a student from a class (Teacher owner only)
-exports.removeStudentFromClass = async (req, res) => {
+// Remove multiple students from a class (Teacher owner only)
+exports.removeStudentsFromClass = async (req, res) => {
   try {
     const classId = req.params.classId;
-    const studentId = req.params.studentId;
+    const { studentIds } = req.body; // array of ObjectIds
     const teacherId = req.user.id;
     const schoolId = req.user.schoolId;
 
@@ -383,10 +383,27 @@ exports.removeStudentFromClass = async (req, res) => {
       return res.status(404).json({ message: "Class not found or access denied" });
     }
 
-    await Class.findByIdAndUpdate(classId, { $pull: { students: studentId } });
+    if (!Array.isArray(studentIds) || studentIds.length === 0) {
+      return res.status(400).json({ message: "studentIds array is required" });
+    }
 
-    return res.status(200).json({ message: "Student removed from class" });
+    // Only consider students that are actually in this class
+    const classStudentIdSet = new Set((classData.students || []).map(s => String(s)));
+    const toRemove = studentIds.filter(id => classStudentIdSet.has(String(id)));
+
+    if (toRemove.length === 0) {
+      return res.status(200).json({ message: "No matching students to remove", results: { removed: [], notInClass: studentIds.map(String) } });
+    }
+
+    await Class.findByIdAndUpdate(classId, { $pull: { students: { $in: toRemove } } });
+
+    const results = {
+      removed: toRemove.map(String),
+      notInClass: studentIds.filter(id => !classStudentIdSet.has(String(id))).map(String)
+    };
+
+    return res.status(200).json({ message: "Students removed from class", results });
   } catch (error) {
-    return res.status(500).json({ message: "Error removing student", error: error.message });
+    return res.status(500).json({ message: "Error removing students", error: error.message });
   }
 };
