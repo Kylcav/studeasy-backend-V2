@@ -6,7 +6,6 @@ const schoolRoutes = require("./routes/schoolRoutes");
 const userRoutes = require("./routes/userRoutes");
 const classRoutes = require("./routes/classRoutes");
 const subjectRoutes = require("./routes/subjectRoutes");
-const invitationRoutes = require("./routes/invitationRoutes");
 
 dotenv.config();
 const app = express();
@@ -20,7 +19,6 @@ app.use("/api/schools", schoolRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/classes", classRoutes);
 app.use("/api/subjects", subjectRoutes);
-app.use("/api", invitationRoutes);
 
 // MongoDB Connection
 mongoose

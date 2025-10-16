@@ -1,7 +1,7 @@
 const Class = require("../models/Class");
 const Subject = require("../models/Subject");
 const User = require("../models/User");
-const Invitation = require("../models/Invitation");
+// Invitation model not needed for current class membership flows
 
 // Create a new class (Teacher only)
 exports.createClass = async (req, res) => {
@@ -317,6 +317,51 @@ exports.getClassStudents = async (req, res) => {
     return res.status(200).json({ message: "Class students fetched", students: classData.students });
   } catch (error) {
     return res.status(500).json({ message: "Error fetching class students", error: error.message });
+  }
+};
+
+// Get school students with class membership flag (Teacher only)
+exports.getSchoolStudentsWithFlags = async (req, res) => {
+  try {
+    const classId = req.params.classId;
+    const teacherId = req.user.id;
+    const schoolId = req.user.schoolId;
+
+    if (req.user.role !== "teacher") {
+      return res.status(403).json({ message: "Only teachers can view school students for a class" });
+    }
+
+    // Ensure class exists and belongs to this teacher within the same school
+    const classData = await Class.findOne({ _id: classId, createdBy: teacherId, schoolId });
+    if (!classData) {
+      return res.status(404).json({ message: "Class not found or access denied" });
+    }
+
+    // Get all students from the same school
+    const schoolStudents = await User.find({ role: "student", schoolId }).select("name email");
+
+    if (schoolStudents.length === 0) {
+      return res.status(200).json({ message: "No students found in school", count: 0, students: [] });
+    }
+
+    const inClassSet = new Set((classData.students || []).map(s => String(s)));
+
+    const result = schoolStudents.map(s => ({
+      name: s.name,
+      email: s.email,
+      isinvite: inClassSet.has(String(s._id))
+    }));
+
+    return res.status(200).json({
+      message: "School students fetched",
+      count: result.length,
+      students: result
+    });
+  } catch (error) {
+    if (error.name === "CastError") {
+      return res.status(400).json({ message: "Invalid class ID format" });
+    }
+    return res.status(500).json({ message: "Error fetching students with flags", error: error.message });
   }
 };
 
