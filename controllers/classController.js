@@ -304,7 +304,6 @@ exports.getClassStudents = async (req, res) => {
     if (role === "teacher") {
       classQuery.createdBy = req.user.id;
     }
-
     const classData = await Class.findOne(classQuery).populate({
       path: "students",
       select: "name email"
@@ -314,7 +313,22 @@ exports.getClassStudents = async (req, res) => {
       return res.status(404).json({ message: "Class not found or access denied" });
     }
 
-    return res.status(200).json({ message: "Class students fetched", students: classData.students });
+    // Build a set of student IDs that are members of this class
+    const inClassSet = new Set((classData.students || []).map(s => String(s._id)));
+
+    // Return class students with isinvite flag (always true for class members)
+    const studentsWithFlags = (classData.students || []).map(s => ({
+      _id: s._id,
+      name: s.name,
+      email: s.email,
+      isinvite: inClassSet.has(String(s._id))
+    }));
+
+    return res.status(200).json({
+      message: "Class students fetched",
+      count: studentsWithFlags.length,
+      students: studentsWithFlags
+    });
   } catch (error) {
     return res.status(500).json({ message: "Error fetching class students", error: error.message });
   }
