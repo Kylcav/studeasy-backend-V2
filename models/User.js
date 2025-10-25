@@ -11,6 +11,7 @@ const userSchema = new mongoose.Schema({
     required: true,
   },
   schoolId: { type: mongoose.Schema.Types.ObjectId, ref: "School" },
+  profileImage: { type: String, default: null }, // S3 URL for profile image
 });
 
 

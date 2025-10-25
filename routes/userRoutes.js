@@ -8,9 +8,11 @@ const {
   setPassword,
   deleteUser,
   getSchoolStudents,
+  uploadProfileImage,
 } = require("../controllers/userController");
 const authMiddleware = require("../middlewares/authMiddleware");
 const roleMiddleware = require("../middlewares/roleMiddleware");
+const { upload } = require("../utils/s3Utils");
 const router = express.Router();
 
 router.get("/", authMiddleware, roleMiddleware(["admin"]), getUsers);
@@ -21,9 +23,18 @@ router.get("/:id", authMiddleware, roleMiddleware(["admin", "user"]), getUser); 
 router.put(
   "/:id",
   authMiddleware,
-  roleMiddleware(["admin", "user"]),
+  roleMiddleware(["admin", "user","teacher"]),
   updateUser
 ); // Update user details
+
+// Upload profile image
+router.post(
+  "/:id/profile-image",
+  authMiddleware,
+  roleMiddleware(["admin", "user", "teacher"]),
+  upload.single('profileImage'),
+  uploadProfileImage
+); // Upload profile image
 router.put(
   "/:id/reset-password",
   authMiddleware,

@@ -1,6 +1,7 @@
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
+const { uploadToS3, deleteFromS3 } = require("../utils/s3Utils");
 
 // Get all users
 exports.getUsers = async (req, res) => {
@@ -112,6 +113,58 @@ exports.updateUser = async (req, res) => {
     }
     res.status(500).json({
       message: "Error updating user",
+      error: error.message,
+    });
+  }
+};
+
+// Upload profile image
+exports.uploadProfileImage = async (req, res) => {
+  try {
+    const userId = req.params.id;
+    
+    // Validate if user ID is provided
+    if (!userId) {
+      return res.status(400).json({ message: "User ID is required" });
+    }
+
+    // Check if file is uploaded
+    if (!req.file) {
+      return res.status(400).json({ message: "No image file provided" });
+    }
+
+    // Find the user
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Delete old profile image from S3 if exists
+    if (user.profileImage) {
+      await deleteFromS3(user.profileImage);
+    }
+
+    // Upload new image to S3
+    const imageUrl = await uploadToS3(req.file, 'profile-images');
+
+    // Update user with new profile image URL
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      { profileImage: imageUrl },
+      { new: true, runValidators: true }
+    ).select("-password");
+
+    res.status(200).json({
+      message: "Profile image uploaded successfully",
+      user: updatedUser,
+      imageUrl: imageUrl
+    });
+  } catch (error) {
+    if (error.name === "CastError") {
+      return res.status(400).json({ message: "Invalid user ID format" });
+    }
+    res.status(500).json({
+      message: "Error uploading profile image",
       error: error.message,
     });
   }
